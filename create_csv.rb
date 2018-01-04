@@ -23,7 +23,7 @@ require 'date'
 
     def create_orders
       my_shopify_orders = pull_orders
-      puts "** Number of orders to fulfill: #{my_orders.length} **"
+      puts "** Number of orders to fulfill: #{my_shopify_orders.length} **"
       puts "*************"
 
       orders_for_csv = []
@@ -49,8 +49,8 @@ require 'date'
           total_price: order["total_price"],
           subtotal: order["subtotal_price"],
           total_discounts: order["total_discounts"],
-          tags: order["tags"],
-          line_items: order["line_items"],
+          # tags: order["tags"],
+          # line_items: order["line_items"],
           billing_customer_name: billing_address["name"],
           billing_address: billing_address["address1"],
           billing_city: billing_address["city"],
@@ -65,12 +65,22 @@ require 'date'
           shipping_country: shipping_address["country"]
         }
 
+        puts "_____"
+        puts "Order"
         puts JSON.pretty_generate(new_order)
-        puts new_order["line_items"]
+        puts "_____"
+        puts "Line Items in Order:"
+        puts JSON.pretty_generate(order["line_items"].as_json)
+        puts "_____"
+        puts "Tags:"
+        puts JSON.pretty_generate(order["tags"].as_json)
+        puts "_____"
+        puts "NOW IDENTIFYING ATTRIBUTES FOR EACH ITEM"
+        # call function for getting each item
 
-        orders_for_csv.push(new_order)
+        # orders_for_csv.push(new_order)
       end
-      return orders_for_csv
+      # orders_for_csv
     end
 
 
@@ -95,10 +105,7 @@ require 'date'
     # end
 #########
 
-    # def get_products
-    # end
-    #
-    # def get_variants(product_id)
+    # def get_items
     # end
 
     def generate_csv_file
@@ -106,7 +113,7 @@ require 'date'
       rand_num_addon = rand(0..200).to_s
       # name of CSV file to write to
       name = "TEST_Orders" + current_date.strftime("_%^B%Y") + rand_num_addon + ".csv"
-      return name
+      name
     end
 
     # IMPORTANT INDICES REFERENCE:
@@ -142,7 +149,7 @@ require 'date'
           data_out = []
 
           order["line_items"].each do |item|
-            new_item =
+            # new_item =
           end
 
           data_out[0] = order["unique_order_number"]
@@ -252,4 +259,4 @@ require 'date'
 # end     --> for module
 
 
-get_orders
+create_orders
