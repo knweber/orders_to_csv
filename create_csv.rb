@@ -18,24 +18,26 @@ def create_orders
 
     unique_order_number = "#IN" + SecureRandom.random_number(36**12).to_s(36).rjust(12,"0")
 
-    customer = order["customer"].as_json
+    customer = order.customer
 
-    default_address = order["default_address"].as_json
+    default_address = order.default_address
 
-    billing_address = order["billing_address"].as_json
+    billing_address = order.billing_address
 
-    shipping_address = order["shipping_address"].as_json
+    shipping_address = order.shipping_address
 
-    line_items = order["line_items"].as_json
+    line_items = order.line_items
 
     line_items.each do |item|
 
-      # ** Need to figure out how to get these values (when I pull down an order from Shopify, the variant sku is given as the line item's sku -- are we planning on keeping this relation, rather than separating it out per Ryan's tables?)
+      variant_id = order.line_items[0]["variant_id"]
 
-      # sku = # ProductVariant ["sku"]
-      # weight = # ProductVariant ["weight"]
-      # weight_units = # ProductVariant ["weight_unit"]
-      # item_name = # ProductVariant ["title"]
+      props = order.line_items[0]["properties"]
+
+      sku = props["sku"]
+      weight = props["weight"]
+      weight_units = props["weight_unit"]
+      item_name = props["title"]
 
       new_order = Order.new({
         unique_order_number: unique_order_number,
@@ -46,10 +48,10 @@ def create_orders
         total_price: order["total_price"],
         subtotal: order["subtotal_price"],
         total_discounts: order["total_discounts"],
-        # sku: sku,
-        # weight: weight,
-        # weight_unit: weight_units,
-        # item_name: item_name,
+        sku: sku,
+        weight: weight,
+        weight_unit: weight_units,
+        item_name: item_name,
         billing_customer_name: billing_address["name"],
         billing_address: billing_address["address1"],
         billing_city: billing_address["city"],
