@@ -45,7 +45,7 @@ def create_orders
       # weight_units = # ProductVariant ["weight_unit"]
       # item_name = # ProductVariant ["title"]
 
-      new_order = {
+      new_order = Order.new({
         unique_order_number: unique_order_number,
         email: order["contact_email"],
         phone: order["phone"],
@@ -70,13 +70,17 @@ def create_orders
         shipping_zip: shipping_address["zip"],
         shipping_state: shipping_address["province"],
         shipping_country: shipping_address["country"]
-      }
+      })
 
-      puts "_____"
-      puts "Order:"
-      puts JSON.pretty_generate(new_order)
+      if new_order.valid?
+        new_order.save
+        puts "_____"
+        puts "Order:"
+        puts JSON.pretty_generate(new_order)
 
-      orders_for_csv.push(new_order)
+        orders_for_csv.push(new_order)
+      end
+
     end
   end
   fill_csv(orders_for_csv)
