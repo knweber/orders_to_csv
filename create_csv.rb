@@ -12,15 +12,21 @@ ShopifyAPI::Base.site = "https://#{$apikey}:#{$password}@#{$shopname}.myshopify.
 
 def create_orders
   # get all unfulfilled orders
-  # *** adjust created_at date ***
   @my_shopify_orders = ShopifyOrder.where('created_at BETWEEN ? AND ?', 14.days.ago.utc, Time.now.utc)
+  # *** ADD CONDITION FOR ONLY UNFULFILLED
 
   puts "** Number of orders to fulfill: #{@my_shopify_orders.length} **"
   puts "*************"
 
+  orders_for_csv = []
+
+  # for each ShopifyOrder in DB, create at least one 'order' -- if ShopifyOrder only had one line item, only one order will be created, while multiple orders (CSV rows) will be created if the ShopifyOrder contains multiple line items
   @my_shopify_orders.each do |order|
     puts "NEW ORDER"
+
     unique_order_number = "#IN" + SecureRandom.random_number(36**12).to_s(36).rjust(12,"0")
+
+    customer = order["customer"].as_json
 
     default_address = order["default_address"].as_json
 
@@ -28,78 +34,52 @@ def create_orders
 
     shipping_address = order["shipping_address"].as_json
 
-    new_order = {
-      shopify_order_id: order["id"],
-      unique_order_number: unique_order_number,
-      email: order["email"],
-      phone: order["phone"],
-      first_name: shipping_address["first_name"],
-      last_name: shipping_address["last_name"],
-      total_price: order["total_price"],
-      subtotal: order["subtotal_price"],
-      total_discounts: order["total_discounts"],
-      # tags: order["tags"],
-      # line_items: order["line_items"],
-      billing_customer_name: billing_address["name"],
-      billing_address: billing_address["address1"],
-      billing_city: billing_address["city"],
-      billing_zip: billing_address["zip"],
-      billing_state: billing_address["province"],
-      billing_country: billing_address["country"],
-      shipping_address: shipping_address["address1"],
-      shipping_address2: shipping_address["address2"],
-      shipping_city: shipping_address["city"],
-      shipping_zip: shipping_address["zip"],
-      shipping_state: shipping_address["province"],
-      shipping_country: shipping_address["country"]
-    }
+    line_items = order["line_items"].as_json
 
-    puts "_____"
-    puts "Order"
-    puts JSON.pretty_generate(new_order)
-    puts "_____"
-    puts "Line Items in Order:"
-    puts JSON.pretty_generate(order["line_items"].as_json)
-    puts "_____"
-    puts "Tags:"
-    puts JSON.pretty_generate(order["tags"].as_json)
-    puts "_____"
-    puts "NOW GETTING INDIVIDUAL ITEMS"
+    line_items.each do |item|
 
-    order["line_items"].as_json.each do |item|
-      get_item(item)
+      # ** Need to figure out how to get these values (when I pull down an order from Shopify, the variant sku is given as the line item's sku -- are we planning on keeping this relation, rather than separating it out per Ryan's tables?)
+
+      # sku = # ProductVariant ["sku"]
+      # weight = # ProductVariant ["weight"]
+      # weight_units = # ProductVariant ["weight_unit"]
+      # item_name = # ProductVariant ["title"]
+
+      new_order = {
+        unique_order_number: unique_order_number,
+        email: order["contact_email"],
+        phone: order["phone"],
+        first_name: shipping_address["first_name"],
+        last_name: shipping_address["last_name"],
+        total_price: order["total_price"],
+        subtotal: order["subtotal_price"],
+        total_discounts: order["total_discounts"],
+        # sku: sku,
+        # weight: weight,
+        # weight_unit: weight_units,
+        # item_name: item_name,
+        billing_customer_name: billing_address["name"],
+        billing_address: billing_address["address1"],
+        billing_city: billing_address["city"],
+        billing_zip: billing_address["zip"],
+        billing_state: billing_address["province"],
+        billing_country: billing_address["country"],
+        shipping_address: shipping_address["address1"],
+        shipping_address2: shipping_address["address2"],
+        shipping_city: shipping_address["city"],
+        shipping_zip: shipping_address["zip"],
+        shipping_state: shipping_address["province"],
+        shipping_country: shipping_address["country"]
+      }
+
+      puts "_____"
+      puts "Order:"
+      puts JSON.pretty_generate(new_order)
+
+      orders_for_csv.push(new_order)
     end
-
-    # orders_for_csv.push(new_order)
   end
-  # orders_for_csv
-end
-
-
-###########
-
-  # single_order = my_orders[4].attributes
-  # single_order.each do |myord|
-  #     puts myord.inspect
-  #     if myord[0] == "line_items"
-  #         single_line_item = myord[1]
-  #     end
-  # end
-
-#   single_line_item.each do |mys|
-#       myjson = mys.attributes
-#       puts JSON.pretty_generate(myjson)
-#       myprops = mys.attributes['properties']
-#       myprops.each do |myprop|
-#           puts myprop.inspect
-#       end
-#   end
-# end
-#########
-
-def get_item(line_item)
-  item = ShopifyProductVariant.
-
+  fill_csv(orders_for_csv)
 end
 
 def create_csv
@@ -110,7 +90,50 @@ def create_csv
   name
 end
 
-# IMPORTANT INDICES REFERENCE:
+def fill_csv(orders)
+  filename = create_csv
+  CSV.open(filename,"w+") do |file|
+    file << header_arr
+    # in this context, an 'order' will have one line item, so a multi-item order will add more than one row to the CSV file, but they will share a unique_order_number
+    orders.each do |order|
+      data_out = []
+
+      # single CSV row -- skipped indices are blank in output CSV
+      data_out[0] = order["unique_order_number"]
+      data_out[2] = order["created_at"]
+      data_out[3] = order["sku"]
+      data_out[6] = order["first_name"] + " " + order["last_name"]
+      data_out[7] = order["shipping_address"]
+      data_out[8] = order["shipping_address2"]
+      data_out[9] = order["shipping_city"]
+      data_out[10] = order["shipping_state"]
+      data_out[11] = order["shipping_zip"]
+      data_out[12] = order["shipping_country"]
+      data_out[23] = order["item_name"]
+      data_out[27] = order["billing_customer_name"]
+      data_out[28] = order["billing_address"]
+      data_out[29] = order["billing_city"]
+      data_out[30] = order["billing_state"]
+      data_out[31] = order["billing_zip"]
+      data_out[32] = order["billing_country"]
+      data_out[34] = order["weight"]
+      data_out[35] = order["weight_unit"]
+      data_out[40] = order["phone"]
+      data_out[46] = order["total_price"]
+      data_out[-1] = " \n"
+
+      file << data_out
+    end
+  end
+
+  send_file(filename, :filename => filename)
+end
+
+# run code
+create_orders
+
+
+# IMPORTANT COLUMN INDEX REFERENCE FOR CSV:
 # 0 order number
 # 2 order date
 # 3 merchant sku
@@ -135,119 +158,5 @@ end
 # 40 customer phone number
 # 46 sell price
 
-def fill_csv(orders)
-  filename = create_csv
-  CSV.open(filename,"w+") do |file|
-    file << header_arr
-    orders.each do |order|
-      data_out = []
-
-      order["line_items"].each do |item|
-        # new_item =
-      end
-
-      data_out[0] = order["unique_order_number"]
-      data_out[2] =
-      data_out[3] =
-      data_out[4] =
-      data_out[6] =
-      data_out[7] = order["shipping_address"]
-      data_out[8] = order["shipping_address2"]
-      data_out[9] = order["shipping_city"]
-      data_out[10] = order["shipping_state"]
-      data_out[11] = order["shipping_zip"]
-      data_out[12] = order["shipping_country"]
-      data_out[23] =
-      data_out[24] =
-      data_out[27] = order["billing_customer_name"]
-      data_out[28] = order["billing_address"]
-      data_out[29] = order["billing_city"]
-      data_out[30] = order["billing_state"]
-      data_out[31] = order["billing_zip"]
-      data_out[32] = order["billing_country"]
-      data_out[34] =
-      data_out[35] =
-      data_out[40] = order["phone"]
-      data_out[46] = order["total_price"]
-
-      file << data_out
-    end
-  end
-
-end
-
-###########
-  #   orders.each do |order|
-
-  #
-  #       data_out = [
-  #         order.order_number,
-  #         "",
-  #         "",
-  #         item["sku"],
-  #         1,
-  #         "",
-  #         order.influencer.first_name + " " + order.influencer.last_name,
-  #         order.influencer.address1,
-  #         order.influencer.address2,
-  #         order.influencer.city,
-  #         order.influencer.state,
-  #         order.influencer.zip,
-  #         "US",
-  #         "FALSE",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         item["title"],
-  #         "",
-  #         "",
-  #         "",
-  #         order.influencer.first_name + " " + order.influencer.last_name,
-  #         order.influencer.address1,
-  #         order.influencer.city,
-  #         order.influencer.state,
-  #         order.influencer.zip,
-  #         "US",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         order.influencer.phone,
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         0.00,
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         "",
-  #         " \n"
-  #       ]
-  #       p "DATA OUT:"
-  #       p data_out
-  #       file << data_out
-  #     end
-  #   end
-  #end
-
+# CSV COLUMNS:
 header_arr = ["order_number","groupon_number","order_date","merchant_sku_item","quantity_requested","shipment_method_requested","shipment_address_name","shipment_address_street","shipment_address_street_2","shipment_address_city","shipment_address_state","shipment_address_postal_code","shipment_address_country","gift","gift_message","quantity_shipped","shipment_carrier","shipment_method","shipment_tracking_number","ship_date","groupon_sku","custom_field_value","permalink","item_name","vendor_id","salesforce_deal_option_id","groupon_cost","billing_address_name","billing_address_street","billing_address_city","billing_address_state","billing_address_postal_code","billing_address_country","purchase_order_number","product_weight","product_weight_unit","product_length","product_width","product_height","product_dimension_unit","customer_phone","incoterms","hts_code","3pl_name","3pl_warehouse_location","kitting_details","sell_price","deal_opportunity_id","shipment_strategy","fulfillment_method","country_of_origin","merchant_permalink","feature_start_date","feature_end_date","bom_sku","payment_method","color_code","tax_rate","tax_price\n"]
-
-
-create_orders

@@ -1,7 +1,6 @@
 class CreateOrders < ActiveRecord::Migration
   def change
     create_table :orders do |t|
-      t.string :shopify_order_id
       t.string :unique_order_number
       t.string :email
       t.string :phone
@@ -10,8 +9,11 @@ class CreateOrders < ActiveRecord::Migration
       t.decimal :total_price
       t.decimal :subtotal
       t.decimal :total_discounts
-      t.jsonb :tags
-      t.jsonb :line_items
+
+      t.string :sku
+      t.decimal :weight
+      t.string :weight_units
+      t.string :item_name
 
       t.string :billing_customer_name
       t.string :billing_address
