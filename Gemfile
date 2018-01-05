@@ -11,10 +11,11 @@ gem 'sinatra-support'
 
 gem 'activesupport', '~>4.2.0'
 gem 'activerecord', '~>4.2.0'
-gem 'httparty'
-gem 'shopify_api'
+gem 'sinatra-activerecord'
 
 gem 'rake'
+
+gem 'dotenv'
 
 gem 'shotgun', '~>0.9.1'
 
@@ -22,7 +23,4 @@ group :test do
   gem 'shoulda-matchers'
   gem 'rack-test'
   gem 'rspec', '~>3.0'
-  gem 'capybara'
-  gem 'factory_bot'
-  gem 'faker'
 end

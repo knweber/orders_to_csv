@@ -4,7 +4,7 @@ require 'date'
 
 def create_orders
   # get all unfulfilled orders
-  @my_shopify_orders = ShopifyOrder.where('created_at BETWEEN ? AND ?', 14.days.ago.utc, Time.now.utc)
+  @my_shopify_orders = ShopifyOrder.where('created_at BETWEEN ? AND ?', 10.days.ago.utc, Time.now.utc)
   # *** ADD CONDITION FOR ONLY UNFULFILLED
 
   puts "** Number of orders to fulfill: #{@my_shopify_orders.length} **"
