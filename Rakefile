@@ -8,6 +8,7 @@ ActiveRecord::Base.establish_connection ENV['DATABASE_URL']
 
 desc 'process orders'
 task :process_orders do |t|
+  create_orders
 end
 # require ::File.expand_path('../config/environment', __FILE__)
 #

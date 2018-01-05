@@ -127,9 +127,6 @@ def fill_csv(orders)
   send_file(filename, :filename => filename)
 end
 
-# run code
-create_orders
-
 
 # IMPORTANT COLUMN INDEX REFERENCE FOR CSV:
 # 0 order number
