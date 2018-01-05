@@ -1,14 +1,6 @@
-require 'shopify_api'
 require 'json'
 require 'csv'
 require 'date'
-
-
-$apikey = ENV['ELLIE_STAGING_API_KEY']
-$password = ENV['ELLIE_STAGING_PASSWORD']
-$shopname = ENV['SHOPNAME']
-ShopifyAPI::Base.site = "https://#{$apikey}:#{$password}@#{$shopname}.myshopify.com/admin"
-
 
 def create_orders
   # get all unfulfilled orders
